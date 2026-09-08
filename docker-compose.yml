@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pulsepath
+      POSTGRES_USER: pulsepath
+      POSTGRES_PASSWORD: pulsepath_dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pulsepath -d pulsepath"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  influxdb:
+    image: influxdb:2.7-alpine
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: pulsepath_dev_password
+      DOCKER_INFLUXDB_INIT_ORG: pulsepath
+      DOCKER_INFLUXDB_INIT_BUCKET: vitals
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: pulsepath-local-token
+    ports:
+      - "8086:8086"
+    volumes:
+      - influx_data:/var/lib/influxdb2
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://pulsepath:pulsepath_dev@postgres:5432/pulsepath
+      JWT_SECRET: change-this-local-demo-secret
+      INFLUX_URL: http://influxdb:8086
+      INFLUX_TOKEN: pulsepath-local-token
+      INFLUX_ORG: pulsepath
+      INFLUX_BUCKET: vitals
+      APP_ENV: development
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      influxdb:
+        condition: service_started
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+volumes:
+  postgres_data:
+  influx_data:
