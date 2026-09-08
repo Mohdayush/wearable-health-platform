@@ -90,6 +90,7 @@ class SummaryResponse(BaseModel):
 
 
 class PointResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     metric: str
     value: float
     unit: str
@@ -117,11 +118,6 @@ class AlertPreferenceRequest(BaseModel):
     def metric_known(cls, value: str):
         if value not in SUPPORTED_RANGES:
             raise ValueError("Unsupported metric")
-        return value
-
-    @field_validator("upper_threshold")
-    @classmethod
-    def positive_upper(cls, value):
         return value
 
 
